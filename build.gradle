@@ -13,6 +13,9 @@ sourceSets.main.resources.srcDirs = ['src/main/web']  // Для статичес
 
 dependencies {
 
+    // Драйвер SQLite
+    implementation 'org.xerial:sqlite-jdbc:3.42.0.0'
+
     providedCompile 'jakarta.servlet:jakarta.servlet-api:5.0.0'
 
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
