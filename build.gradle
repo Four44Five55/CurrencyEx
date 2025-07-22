@@ -1,0 +1,28 @@
+plugins {
+    id 'java'
+    id 'war'
+}
+
+group = 'org.example'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+sourceSets.main.resources.srcDirs = ['src/main/web']  // Для статических ресурсов
+
+dependencies {
+
+    providedCompile 'jakarta.servlet:jakarta.servlet-api:5.0.0'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
+}
+
+
+war {
+    archiveBaseName = 'currency-exchange-app'
+    test {
+        useJUnitPlatform()
+    }
+}
