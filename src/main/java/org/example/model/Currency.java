@@ -2,15 +2,11 @@ package org.example.model;
 
 public class Currency {
     private int id;
-    private String charCode;
-    private int numCode;
+    private String code;
     private String fullName;
     private String sign;
 
     public Currency() {
-    }
-
-    public Currency(int id, String charCode, int numCode, String fullName, String sign) {
     }
 
     public int getId() {
@@ -21,20 +17,12 @@ public class Currency {
         this.id = id;
     }
 
-    public String getCharCode() {
-        return charCode;
+    public String getCode() {
+        return code;
     }
 
-    public void setCharCode(String charCode) {
-        this.charCode = charCode;
-    }
-
-    public int getNumCode() {
-        return numCode;
-    }
-
-    public void setNumCode(int numCode) {
-        this.numCode = numCode;
+    public void setCode(String code) {
+        this.code = code;
     }
 
     public String getFullName() {
