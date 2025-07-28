@@ -52,7 +52,7 @@ public class ExchangeServlet extends HttpServlet {
             Map<String, Object> responseBody = Map.of(
                     "from", fromCurrencyCode,
                     "to", toCurrencyCode,
-                    "rate", crossRate, // <-- ВОТ ЗДЕСЬ ДОЛЖЕН БЫТЬ РЕАЛЬНЫЙ КУРС КОНВЕРТАЦИИ
+                    "rate", crossRate,
                     "amount", amount,
                     "convertedAmount", convertedAmount
             );

@@ -17,6 +17,7 @@ import java.util.Optional;
 public class CurrencyService {
     private final CurrencyDAO currencyDAO = new CurrencyDAO();
     private final ExchangeRateDAO exchangeRateDAO = new ExchangeRateDAO();
+    private final CentralBankService centralBankService = new CentralBankService();
 
     public Currency addCurrency(String code, String fullName, String sign) throws SQLException, ValidationException, DuplicateEntityException {
 
@@ -33,8 +34,25 @@ public class CurrencyService {
         newCurrency.setFullName(fullName);
         newCurrency.setSign(sign);
 
-        return currencyDAO.save(newCurrency);
+        Currency savedCurrency = currencyDAO.save(newCurrency);
+
+        // 2. СРАЗУ ПОСЛЕ СОХРАНЕНИЯ, пытаемся подтянуть для нее курс
+        try {
+            System.out.println("Attempting to fetch exchange rate for new currency: " + savedCurrency.getCode());
+            centralBankService.updateRateForCurrency(savedCurrency);
+        } catch (Exception e) {
+            // Если не удалось получить курс (нет интернета, нет данных в ЦБ),
+            // это не должно отменять создание самой валюты.
+            // Просто логируем ошибку.
+            System.err.println("Could not fetch exchange rate for " + savedCurrency.getCode() + ". " +
+                    "The currency was created, but the rate needs to be updated later. Error: " + e.getMessage());
+            // В реальном приложении здесь был бы вызов логгера, e.g., log.warn(...)
+        }
+
+        // Возвращаем созданную валюту
+        return savedCurrency;
     }
+
 
     public List<Currency> getAllCurrencies() throws SQLException {
         return currencyDAO.findAll();
