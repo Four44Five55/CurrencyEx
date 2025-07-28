@@ -9,6 +9,7 @@ import org.example.model.Currency;
 import org.example.model.ExchangeRate;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
@@ -16,6 +17,7 @@ import java.util.Map;
 import java.util.Optional;
 
 public class ExchangeRateService {
+    private static final String BASE_CURRENCY_CODE = "RUB";
     private final CurrencyDAO currencyDAO = new CurrencyDAO();
     private final ExchangeRateDAO exchangeRateDAO = new ExchangeRateDAO();
 
@@ -58,6 +60,58 @@ public class ExchangeRateService {
         ExchangeRate rateToDelete = exchangeRateDAO.findByCurrencyCode(currencyCode.toUpperCase())
                 .orElseThrow(() -> new EntityNotFoundException("ExchangeRate", currencyCode));
         exchangeRateDAO.delete(rateToDelete.getId());
+    }
+
+    public BigDecimal convertAmount(BigDecimal amount, BigDecimal rate)
+            throws SQLException, EntityNotFoundException {
+        return amount.multiply(rate).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    public BigDecimal calculateCrossRate(String fromCode, String toCode)
+            throws SQLException, EntityNotFoundException {
+
+        // Случай 0: Валюты совпадают
+        if (fromCode.equals(toCode)) {
+            return BigDecimal.ONE;
+        }
+
+        // Случай 1: Конвертация ИЗ РУБЛЯ в другую валюту (RUB -> USD)
+        if (fromCode.equals(BASE_CURRENCY_CODE)) {
+            ExchangeRate toRate = exchangeRateDAO.findByCurrencyCode(toCode)
+                    .orElseThrow(() -> new EntityNotFoundException("Exchange rate for " + toCode, "not found"));
+
+            // Нам нужен курс 1 / (USD -> RUB)
+            BigDecimal ratePerOneUnit = toRate.getRate().divide(
+                    BigDecimal.valueOf(toRate.getNominal()), 10, RoundingMode.HALF_UP);
+
+            return BigDecimal.ONE.divide(ratePerOneUnit, 6, RoundingMode.HALF_UP);
+        }
+
+        // Случай 2: Конвертация В РУБЛЬ из другой валюты (USD -> RUB)
+        if (toCode.equals(BASE_CURRENCY_CODE)) {
+            ExchangeRate fromRate = exchangeRateDAO.findByCurrencyCode(fromCode)
+                    .orElseThrow(() -> new EntityNotFoundException("Exchange rate for " + fromCode, "not found"));
+
+            // Просто возвращаем курс этой валюты к рублю
+            return fromRate.getRate().divide(
+                    BigDecimal.valueOf(fromRate.getNominal()), 6, RoundingMode.HALF_UP);
+        }
+
+        // Случай 3: Кросс-курс между двумя НЕ-РУБЛЕВЫМИ валютами (USD -> EUR)
+        // (Этот блок остается таким же, как мы писали ранее)
+        ExchangeRate fromRate = exchangeRateDAO.findByCurrencyCode(fromCode)
+                .orElseThrow(() -> new EntityNotFoundException("Exchange rate for " + fromCode, "not found"));
+        ExchangeRate toRate = exchangeRateDAO.findByCurrencyCode(toCode)
+                .orElseThrow(() -> new EntityNotFoundException("Exchange rate for " + toCode, "not found"));
+
+        BigDecimal fromRatePerOneUnit = fromRate.getRate().divide(
+                BigDecimal.valueOf(fromRate.getNominal()), 10, RoundingMode.HALF_UP);
+
+        BigDecimal toRatePerOneUnit = toRate.getRate().divide(
+                BigDecimal.valueOf(toRate.getNominal()), 10, RoundingMode.HALF_UP);
+
+        // Формула: (EUR -> RUB) / (USD -> RUB) = курс USD -> EUR
+        return toRatePerOneUnit.divide(fromRatePerOneUnit, 6, RoundingMode.HALF_UP);
     }
 
     private void validateExchangeRateFields(String currencyCode, Integer nominal, BigDecimal rate) throws ValidationException {
