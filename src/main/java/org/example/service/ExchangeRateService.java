@@ -82,9 +82,9 @@ public class ExchangeRateService {
 
             // Нам нужен курс 1 / (USD -> RUB)
             BigDecimal ratePerOneUnit = toRate.getRate().divide(
-                    BigDecimal.valueOf(toRate.getNominal()), 10, RoundingMode.HALF_UP);
+                    BigDecimal.valueOf(toRate.getNominal()), 12, RoundingMode.HALF_UP);
 
-            return BigDecimal.ONE.divide(ratePerOneUnit, 6, RoundingMode.HALF_UP);
+            return BigDecimal.ONE.divide(ratePerOneUnit, 12, RoundingMode.HALF_UP);
         }
 
         // Случай 2: Конвертация В РУБЛЬ из другой валюты (USD -> RUB)
@@ -94,7 +94,7 @@ public class ExchangeRateService {
 
             // Просто возвращаем курс этой валюты к рублю
             return fromRate.getRate().divide(
-                    BigDecimal.valueOf(fromRate.getNominal()), 6, RoundingMode.HALF_UP);
+                    BigDecimal.valueOf(fromRate.getNominal()), 12, RoundingMode.HALF_UP);
         }
 
         // Случай 3: Кросс-курс между двумя НЕ-РУБЛЕВЫМИ валютами (USD -> EUR)
@@ -105,13 +105,13 @@ public class ExchangeRateService {
                 .orElseThrow(() -> new EntityNotFoundException("Exchange rate for " + toCode, "not found"));
 
         BigDecimal fromRatePerOneUnit = fromRate.getRate().divide(
-                BigDecimal.valueOf(fromRate.getNominal()), 10, RoundingMode.HALF_UP);
+                BigDecimal.valueOf(fromRate.getNominal()), 12, RoundingMode.HALF_UP);
 
         BigDecimal toRatePerOneUnit = toRate.getRate().divide(
-                BigDecimal.valueOf(toRate.getNominal()), 10, RoundingMode.HALF_UP);
+                BigDecimal.valueOf(toRate.getNominal()), 12, RoundingMode.HALF_UP);
 
         // Формула: (EUR -> RUB) / (USD -> RUB) = курс USD -> EUR
-        return toRatePerOneUnit.divide(fromRatePerOneUnit, 6, RoundingMode.HALF_UP);
+        return toRatePerOneUnit.divide(fromRatePerOneUnit, 12, RoundingMode.HALF_UP);
     }
 
     private void validateExchangeRateFields(String currencyCode, Integer nominal, BigDecimal rate) throws ValidationException {

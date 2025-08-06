@@ -10,7 +10,8 @@ import java.io.IOException;
 @WebFilter("/*")
 public class CorsFilter implements Filter {
     @Override
-    public void init(FilterConfig filterConfig) { }
+    public void init(FilterConfig filterConfig) {
+    }
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
@@ -24,7 +25,6 @@ public class CorsFilter implements Filter {
         res.setHeader("Access-Control-Allow-Headers", "*");
         res.setHeader("Access-Control-Allow-Credentials", "true");
 
-        // Для preflight-запросов OPTIONS: завершай сразу
         if ("OPTIONS".equalsIgnoreCase(req.getMethod())) {
             res.setStatus(HttpServletResponse.SC_OK);
             return;
@@ -34,5 +34,6 @@ public class CorsFilter implements Filter {
     }
 
     @Override
-    public void destroy() { }
+    public void destroy() {
+    }
 }

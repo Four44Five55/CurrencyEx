@@ -91,7 +91,7 @@ public class CentralBankService {
      * Приватный хелпер для получения данных от ЦБ.
      */
     private JsonNode fetchRatesAndGetValuteNode() throws IOException, InterruptedException {
-        // ... (код из метода fetchRatesFromCbr, возвращающий JsonNode)
+
         HttpRequest request = HttpRequest.newBuilder().uri(URI.create(CBR_API_URL)).GET().build();
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() != 200) {

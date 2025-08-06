@@ -46,9 +46,10 @@ public class ExchangeServlet extends HttpServlet {
 
         try {
             BigDecimal crossRate = exchangeRateService.calculateCrossRate(fromCurrencyCode, toCurrencyCode);
+
             BigDecimal convertedAmount = exchangeRateService.convertAmount(amount, crossRate);
 
-            BigDecimal rate = exchangeRateService.calculateCrossRate(fromCurrencyCode.toUpperCase(), toCurrencyCode.toUpperCase());
+
             Map<String, Object> responseBody = Map.of(
                     "from", fromCurrencyCode,
                     "to", toCurrencyCode,
