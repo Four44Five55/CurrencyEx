@@ -2,11 +2,11 @@ package org.example.exception;
 
 import java.util.Map;
 
-public class ValidationException extends Exception {
+public class ValidationException extends ApplicationException  {
     private final Map<String, String> errors;
 
     public ValidationException(final Map<String, String> errors) {
-        super("Validation exception");
+        super("Ошибка валидации");
         this.errors = errors;
     }
 

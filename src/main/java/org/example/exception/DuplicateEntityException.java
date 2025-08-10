@@ -1,8 +1,7 @@
 package org.example.exception;
 
-public class DuplicateEntityException extends Exception {
-
-    public DuplicateEntityException(String entityName, String identifier) {
-        super(String.format("%s with identifier '%s' already exists.", entityName, identifier));
+public class DuplicateEntityException extends EntityException  {
+    public DuplicateEntityException(String entityName, String code) {
+        super(String.format("%s с кодом '%s' уже существует.", entityName, code));
     }
 }
