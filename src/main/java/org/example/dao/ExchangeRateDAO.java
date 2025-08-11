@@ -107,6 +107,7 @@ public class ExchangeRateDAO {
             }
             throw translateToGeneralError("изменение обменного курса по идентификатору валюты", e);
         }
+
     }
 
     public void delete(int id) {
