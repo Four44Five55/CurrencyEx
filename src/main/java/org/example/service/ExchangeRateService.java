@@ -27,11 +27,7 @@ public class ExchangeRateService {
         Currency currency = currencyDAO.findByCode(currencyCode)
                 .orElseThrow(() -> new EntityNotFoundException("Currency", currencyCode));
 
-        // Проверка на дубликат курса для этой валюты
-        if (exchangeRateDAO.isCurrencyUsed(currency.getId())) {
-            throw new DuplicateEntityException("ExchangeRate", currency.getCode());
-        }
-        ExchangeRate exchangeRate = new ExchangeRate();
+               ExchangeRate exchangeRate = new ExchangeRate();
         exchangeRate.setIdCurrency(currency.getId());
         exchangeRate.setNominal(nominal);
         exchangeRate.setRate(rate);
