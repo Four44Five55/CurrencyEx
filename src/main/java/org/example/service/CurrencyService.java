@@ -1,120 +1,113 @@
 package org.example.service;
 
 import org.example.dao.CurrencyDAO;
-import org.example.dao.ExchangeRateDAO;
-import org.example.exception.DuplicateEntityException;
-import org.example.exception.EntityInUseException;
 import org.example.exception.EntityNotFoundException;
 import org.example.exception.ValidationException;
 import org.example.model.Currency;
 
-import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 public class CurrencyService {
     private final CurrencyDAO currencyDAO = new CurrencyDAO();
-    private final ExchangeRateDAO exchangeRateDAO = new ExchangeRateDAO();
     private final CentralBankService centralBankService = new CentralBankService();
 
-    public Currency addCurrency(String code, String fullName, String sign) throws SQLException, ValidationException, DuplicateEntityException {
+    /**
+     * Добавляет новую валюту. Валидирует данные и делегирует сохранение DAO.
+     * DAO сам обработает ошибку дублирования.
+     */
+    public Currency addCurrency(String code, String fullName, String sign) {
 
         validateCurrencyFields(code, fullName, sign);
 
-        String upperCaseCode = code.toUpperCase();
-        //проверка на наличие валюты в бд
-        if (currencyDAO.findByCode(upperCaseCode).isPresent()) {
-            throw new DuplicateEntityException("Currency", upperCaseCode);
-        }
 
         Currency newCurrency = new Currency();
-        newCurrency.setCode(upperCaseCode);
+        newCurrency.setCode(code.toUpperCase());
         newCurrency.setFullName(fullName);
         newCurrency.setSign(sign);
 
         Currency savedCurrency = currencyDAO.save(newCurrency);
 
-        // 2. СРАЗУ ПОСЛЕ СОХРАНЕНИЯ, пытаемся подтянуть для нее курс
-        try {
-            System.out.println("Attempting to fetch exchange rate for new currency: " + savedCurrency.getCode());
-            centralBankService.updateRateForCurrency(savedCurrency);
-        } catch (Exception e) {
-            // Если не удалось получить курс (нет интернета, нет данных в ЦБ),
-            // это не должно отменять создание самой валюты.
-            // Просто логируем ошибку.
-            System.err.println("Could not fetch exchange rate for " + savedCurrency.getCode() + ". " +
-                    "The currency was created, but the rate needs to be updated later. Error: " + e.getMessage());
-            // В реальном приложении здесь был бы вызов логгера, e.g., log.warn(...)
-        }
+        fetchRateForNewCurrencyAsync(savedCurrency);
 
-        // Возвращаем созданную валюту
         return savedCurrency;
     }
 
-
-    public List<Currency> getAllCurrencies() throws SQLException {
+    /**
+     * Возвращает список всех валют.
+     */
+    public List<Currency> getAllCurrencies() {
         return currencyDAO.findAll();
     }
 
-    public Optional<Currency> getCurrencyByCode(String code) throws SQLException, EntityNotFoundException {
-        return Optional.ofNullable(currencyDAO.findByCode(code.toUpperCase())
-                .orElseThrow(() -> new EntityNotFoundException("Currency", code)));
+    /**
+     * Находит валюту по коду. Если не найдена, бросает исключение.
+     * Это основной метод для получения одной сущности.
+     */
+    public Currency getCurrencyByCode(String code) {
+        return currencyDAO.findByCode(code.toUpperCase())
+                .orElseThrow(() -> new EntityNotFoundException("Валюта", code));
     }
 
-    public Currency updateCurrency(String code, String newFullName, String newSign) throws SQLException, ValidationException, DuplicateEntityException {
+    /**
+     * Обновляет существующую валюту.
+     */
+    public Currency updateCurrency(String code, String newFullName, String newSign) {
         validateCurrencyFields(code, newFullName, newSign);
 
-        Optional<Currency> currencyToUpdate = getCurrencyByCode(code);
+        Currency currencyToUpdate = getCurrencyByCode(code);
 
-        currencyToUpdate.get().setFullName(newFullName);
-        currencyToUpdate.get().setSign(newSign);
+        // Шаг 3: Обновляем поля
+        currencyToUpdate.setFullName(newFullName);
+        currencyToUpdate.setSign(newSign);
 
-        currencyDAO.update(currencyToUpdate.orElse(null));
+        currencyDAO.update(currencyToUpdate);
 
-        return currencyToUpdate.orElse(null);
+        return currencyToUpdate;
     }
 
-    public void deleteCurrency(String code) throws SQLException, EntityNotFoundException, EntityInUseException {
-        // 1. Находим валюту по ее бизнес-ключу.
-        Currency currencyToDelete = currencyDAO.findByCode(code.toUpperCase())
-                .orElseThrow(() -> new EntityNotFoundException("Currency", code));
+    /**
+     * Удаляет валюту по ее коду.
+     */
+    public void deleteCurrency(String code) {
+        Currency currencyToDelete = getCurrencyByCode(code);
 
-        // 2. БИЗНЕС-ПРАВИЛО: Проверяем, не используется ли эта валюта в таблице курсов.
-        //    Это КЛЮЧЕВАЯ задача сервисного слоя - координация нескольких DAO!
-        //    Вызываем метод из ДРУГОГО DAO.
-        if (exchangeRateDAO.isCurrencyUsed(currencyToDelete.getId())) {
-            // Если используется, бросаем специальное исключение.
-            throw new EntityInUseException("Cannot delete currency '" + code + "' because it is used in exchange rates.");
-        }
-
-        // 3. Если все проверки пройдены - удаляем.
         currencyDAO.delete(currencyToDelete.getId());
     }
 
+    private void fetchRateForNewCurrencyAsync(Currency currency) {
+
+        try {
+            System.out.println("Получение обменного курса для новой валюты: " + currency.getCode());
+            centralBankService.updateRateForCurrency(currency);
+        } catch (Exception e) {
+            System.err.println("Не удалось получить обменный курс " + currency.getCode() + ". " +
+                    "Валюта была создана, но ставка должна быть обновлена позже. Ошибка: " + e.getMessage());
+        }
+    }
 
     private void validateCurrencyFields(String code, String fullName, String sign) throws ValidationException {
         Map<String, String> validationErrors = new HashMap<>();
 
         if (code == null || code.isBlank()) {
-            validationErrors.put("code", "Currency code is required.");
+            validationErrors.put("code", "Заполните код валюты (Code).");
         } else if (code.length() != 3) {
-            validationErrors.put("code", "Currency code must be 3 characters long.");
+            validationErrors.put("code", "Код валюты (Code) должен быть не более 3 букв.");
         } else if (!code.matches("[a-zA-Z]+")) {
-            validationErrors.put("code", "Currency code must contain only letters.");
+            validationErrors.put("code", "Код валюты (Code) должен содержать только латинские буквы.");
         }
 
         if (fullName == null || fullName.isBlank()) {
-            validationErrors.put("fullName", "Full name is required.");
+            validationErrors.put("fullName", "Заполните наименование валюты (Name).");
         } else if (fullName.length() > 100) {
-            validationErrors.put("fullName", "Full name cannot be longer than 100 characters.");
+            validationErrors.put("fullName", "Наименование валюты (Name) должно быть не более 100 букв.");
         }
 
-        if (sign == null) {
-            validationErrors.put("sign", "Currency sign is required (can be empty, but not null).");
+        if (sign == null || sign.isBlank()) {
+            validationErrors.put("sign", "Заполните поле знак валюты (Sign).");
         } else if (sign.length() > 5) {
-            validationErrors.put("sign", "Currency sign cannot be longer than 5 characters.");
+            validationErrors.put("sign", "Знак валюты (Sign) не может быть больше 5 символов.");
         }
 
         if (!validationErrors.isEmpty()) {
