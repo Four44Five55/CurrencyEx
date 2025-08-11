@@ -18,9 +18,7 @@ public class CurrencyService {
      * DAO сам обработает ошибку дублирования.
      */
     public Currency addCurrency(String code, String fullName, String sign) {
-
         validateCurrencyFields(code, fullName, sign);
-
 
         Currency newCurrency = new Currency();
         newCurrency.setCode(code.toUpperCase());
@@ -28,9 +26,7 @@ public class CurrencyService {
         newCurrency.setSign(sign);
 
         Currency savedCurrency = currencyDAO.save(newCurrency);
-
         fetchRateForNewCurrencyAsync(savedCurrency);
-
         return savedCurrency;
     }
 
@@ -55,15 +51,11 @@ public class CurrencyService {
      */
     public Currency updateCurrency(String code, String newFullName, String newSign) {
         validateCurrencyFields(code, newFullName, newSign);
-
         Currency currencyToUpdate = getCurrencyByCode(code);
-
-        // Шаг 3: Обновляем поля
         currencyToUpdate.setFullName(newFullName);
         currencyToUpdate.setSign(newSign);
 
         currencyDAO.update(currencyToUpdate);
-
         return currencyToUpdate;
     }
 
@@ -72,12 +64,10 @@ public class CurrencyService {
      */
     public void deleteCurrency(String code) {
         Currency currencyToDelete = getCurrencyByCode(code);
-
         currencyDAO.delete(currencyToDelete.getId());
     }
 
     private void fetchRateForNewCurrencyAsync(Currency currency) {
-
         try {
             System.out.println("Получение обменного курса для новой валюты: " + currency.getCode());
             centralBankService.updateRateForCurrency(currency);
@@ -87,7 +77,7 @@ public class CurrencyService {
         }
     }
 
-    private void validateCurrencyFields(String code, String fullName, String sign) throws ValidationException {
+    private void validateCurrencyFields(String code, String fullName, String sign) {
         Map<String, String> validationErrors = new HashMap<>();
 
         if (code == null || code.isBlank()) {
