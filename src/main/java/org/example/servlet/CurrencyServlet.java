@@ -35,21 +35,17 @@ public class CurrencyServlet extends HttpServlet {
             return;
         }
 
-
         sendErrorResponse(resp, HttpServletResponse.SC_BAD_REQUEST, "Некорректный URL.");
     }
-
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         String pathInfo = req.getPathInfo();
-        // Проверка запроса URL
         if (pathInfo != null && !pathInfo.equals("/")) {
             sendErrorResponse(resp, HttpServletResponse.SC_BAD_REQUEST, "Некорректный URL не поддерживается POST.");
             return;
         }
 
-        //Получение данных из тела
         String code = req.getParameter("code");
         String fullName = req.getParameter("fullName");
         String sign = req.getParameter("sign");
@@ -61,9 +57,7 @@ public class CurrencyServlet extends HttpServlet {
         currency.setFullName(fullName);
         currency.setSign(sign);
 
-
         sendJsonResponse(resp, HttpServletResponse.SC_CREATED, currency);
-
     }
 
     @Override
@@ -80,14 +74,14 @@ public class CurrencyServlet extends HttpServlet {
             sendErrorResponse(resp, HttpServletResponse.SC_CONFLICT, e.getMessage());
         } catch (DataAccessResourceFailureException e) {
             // Ошибка доступа к БД
-            log("Database is unavailable!", e);
+            log("База данных недоступна!", e);
             sendErrorResponse(resp, HttpServletResponse.SC_SERVICE_UNAVAILABLE, "Сервис временно недоступен. Попробуйте позже.");
         } catch (DataAccessException e) {
-            log("An unexpected database error occurred", e);
+            log("Непредвиденная ошибка базы данных.", e);
             sendErrorResponse(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Произошла ошибка на стороне сервера.");
         } catch (Exception e) {
             // непредвиденные ошибок
-            log("An unexpected application error occurred", e);
+            log("Непредвиденная ошибка базы данных.", e);
             sendErrorResponse(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Произошла внутренняя ошибка приложения.");
         }
     }

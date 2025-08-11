@@ -2,7 +2,6 @@ package org.example.service;
 
 import org.example.dao.CurrencyDAO;
 import org.example.dao.ExchangeRateDAO;
-import org.example.exception.DuplicateEntityException;
 import org.example.exception.EntityNotFoundException;
 import org.example.exception.ValidationException;
 import org.example.model.Currency;
@@ -10,27 +9,21 @@ import org.example.model.ExchangeRate;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 public class ExchangeRateService {
     private static final String BASE_CURRENCY_CODE = "RUB";
     private final CurrencyDAO currencyDAO = new CurrencyDAO();
     private final ExchangeRateDAO exchangeRateDAO = new ExchangeRateDAO();
 
-    public ExchangeRate addExchangeRate(String currencyCode, int nominal, BigDecimal rate) throws SQLException, ValidationException, DuplicateEntityException {
+    public ExchangeRate addExchangeRate(String currencyCode, int nominal, BigDecimal rate) {
         validateExchangeRateFields(currencyCode, nominal, rate);
 
         Currency currency = currencyDAO.findByCode(currencyCode)
-                .orElseThrow(() -> new EntityNotFoundException("Currency", currencyCode));
+                .orElseThrow(() -> new EntityNotFoundException("Валюта", currencyCode));
 
-        // Проверка на дубликат курса для этой валюты
-        if (exchangeRateDAO.isCurrencyUsed(currency.getId())) {
-            throw new DuplicateEntityException("ExchangeRate", currency.getCode());
-        }
         ExchangeRate exchangeRate = new ExchangeRate();
         exchangeRate.setIdCurrency(currency.getId());
         exchangeRate.setNominal(nominal);
@@ -39,46 +32,45 @@ public class ExchangeRateService {
         return exchangeRateDAO.save(exchangeRate);
     }
 
-    public List<ExchangeRate> getAllExchangeRates() throws SQLException {
+    public List<ExchangeRate> getAllExchangeRates() {
         return exchangeRateDAO.findAll();
     }
 
-    public Optional<ExchangeRate> getExchangeRateByCode(String currencyCode) throws SQLException {
-        return exchangeRateDAO.findByCurrencyCode(currencyCode);
+    public ExchangeRate getExchangeRateByCode(String currencyCode) {
+        return exchangeRateDAO.findByCurrencyCode(currencyCode.toUpperCase())
+                .orElseThrow(() -> new EntityNotFoundException("Обменный курс для валюты", currencyCode));
     }
 
-    public ExchangeRate updateExchangeRate(String currencyCode, int nominal, BigDecimal rate) throws SQLException, ValidationException {
+    public ExchangeRate updateExchangeRate(String currencyCode, int nominal, BigDecimal rate) {
         validateExchangeRateFields(currencyCode, nominal, rate);
+        ExchangeRate exchangeRate = getExchangeRateByCode(currencyCode);
+        exchangeRate.setNominal(nominal);
+        exchangeRate.setRate(rate);
+        exchangeRateDAO.update(exchangeRate);
 
-        Optional<ExchangeRate> exchangeRate = getExchangeRateByCode(currencyCode);
-        exchangeRate.get().setNominal(nominal);
-        exchangeRate.get().setRate(rate);
-        return exchangeRateDAO.save(exchangeRate.get());
+        return exchangeRate;
     }
 
-    public void deleteExchangeRate(String currencyCode) throws SQLException, EntityNotFoundException {
-        ExchangeRate rateToDelete = exchangeRateDAO.findByCurrencyCode(currencyCode.toUpperCase())
-                .orElseThrow(() -> new EntityNotFoundException("ExchangeRate", currencyCode));
+    public void deleteExchangeRate(String currencyCode) throws EntityNotFoundException {
+        ExchangeRate rateToDelete = getExchangeRateByCode(currencyCode);
         exchangeRateDAO.delete(rateToDelete.getId());
     }
 
-    public BigDecimal convertAmount(BigDecimal amount, BigDecimal rate)
-            throws SQLException, EntityNotFoundException {
+    public BigDecimal convertAmount(BigDecimal amount, BigDecimal rate) {
         return amount.multiply(rate).setScale(2, RoundingMode.HALF_UP);
     }
 
-    public BigDecimal calculateCrossRate(String fromCode, String toCode)
-            throws SQLException, EntityNotFoundException {
+    public BigDecimal calculateCrossRate(String fromCode, String toCode) {
 
-        // Случай 0: Валюты совпадают
+        // Валюты совпадают
         if (fromCode.equals(toCode)) {
             return BigDecimal.ONE;
         }
 
-        // Случай 1: Конвертация ИЗ РУБЛЯ в другую валюту (RUB -> USD)
+        // Конвертация ИЗ РУБЛЯ в другую валюту (RUB -> USD)
         if (fromCode.equals(BASE_CURRENCY_CODE)) {
             ExchangeRate toRate = exchangeRateDAO.findByCurrencyCode(toCode)
-                    .orElseThrow(() -> new EntityNotFoundException("Exchange rate for " + toCode, "not found"));
+                    .orElseThrow(() -> new EntityNotFoundException("Обменный курс валюты " + toCode, "не найден."));
 
             // Нам нужен курс 1 / (USD -> RUB)
             BigDecimal ratePerOneUnit = toRate.getRate().divide(
@@ -87,22 +79,22 @@ public class ExchangeRateService {
             return BigDecimal.ONE.divide(ratePerOneUnit, 12, RoundingMode.HALF_UP);
         }
 
-        // Случай 2: Конвертация В РУБЛЬ из другой валюты (USD -> RUB)
+        //  Конвертация В РУБЛЬ из другой валюты (USD -> RUB)
         if (toCode.equals(BASE_CURRENCY_CODE)) {
             ExchangeRate fromRate = exchangeRateDAO.findByCurrencyCode(fromCode)
-                    .orElseThrow(() -> new EntityNotFoundException("Exchange rate for " + fromCode, "not found"));
+                    .orElseThrow(() -> new EntityNotFoundException("Обменный курс валюты " + fromCode, "не найден."));
 
             // Просто возвращаем курс этой валюты к рублю
             return fromRate.getRate().divide(
                     BigDecimal.valueOf(fromRate.getNominal()), 12, RoundingMode.HALF_UP);
         }
 
-        // Случай 3: Кросс-курс между двумя НЕ-РУБЛЕВЫМИ валютами (USD -> EUR)
+        // Кросс-курс между двумя НЕ-РУБЛЕВЫМИ валютами (USD -> EUR)
         // (Этот блок остается таким же, как мы писали ранее)
         ExchangeRate fromRate = exchangeRateDAO.findByCurrencyCode(fromCode)
-                .orElseThrow(() -> new EntityNotFoundException("Exchange rate for " + fromCode, "not found"));
+                .orElseThrow(() -> new EntityNotFoundException("Обменный курс валюты " + fromCode, "не найден."));
         ExchangeRate toRate = exchangeRateDAO.findByCurrencyCode(toCode)
-                .orElseThrow(() -> new EntityNotFoundException("Exchange rate for " + toCode, "not found"));
+                .orElseThrow(() -> new EntityNotFoundException("Обменный курс валюты " + toCode, "не найден."));
 
         BigDecimal fromRatePerOneUnit = fromRate.getRate().divide(
                 BigDecimal.valueOf(fromRate.getNominal()), 12, RoundingMode.HALF_UP);
@@ -111,41 +103,43 @@ public class ExchangeRateService {
                 BigDecimal.valueOf(toRate.getNominal()), 12, RoundingMode.HALF_UP);
 
         // Формула: (EUR -> RUB) / (USD -> RUB) = курс USD -> EUR
-        return toRatePerOneUnit.divide(fromRatePerOneUnit, 12, RoundingMode.HALF_UP);
+        return fromRatePerOneUnit.divide(toRatePerOneUnit, 12, RoundingMode.HALF_UP);
     }
 
     private void validateExchangeRateFields(String currencyCode, Integer nominal, BigDecimal rate) throws ValidationException {
         Map<String, String> validationErrors = new HashMap<>();
 
+        // --- Валидация кода валюты ---
         if (currencyCode == null || currencyCode.isBlank()) {
-            validationErrors.put("code", "Currency code is required.");
+            validationErrors.put("code", "Код валюты является обязательным полем.");
         } else if (currencyCode.length() != 3) {
-            validationErrors.put("code", "Currency code must be 3 characters long.");
+            validationErrors.put("code", "Код валюты должен состоять из 3 символов.");
         } else if (!currencyCode.matches("[a-zA-Z]+")) {
-            validationErrors.put("code", "Currency code must contain only letters.");
+            validationErrors.put("code", "Код валюты должен содержать только буквы.");
         }
 
-        // nominal: обязательно, положительное число
+        // --- Валидация номинала ---
         if (nominal == null) {
-            validationErrors.put("nominal", "Nominal is required.");
+            validationErrors.put("nominal", "Номинал является обязательным полем.");
         } else if (nominal <= 0) {
-            validationErrors.put("nominal", "Nominal must be a positive integer.");
+            validationErrors.put("nominal", "Номинал должен быть положительным числом.");
         }
 
-        // rate: обязательно, положительное число, не больше 12 знаков всего и 6 после запятой
+        // --- Валидация курса ---
         if (rate == null) {
-            validationErrors.put("rate", "Rate is required.");
+            validationErrors.put("rate", "Курс является обязательным полем.");
         } else if (rate.compareTo(BigDecimal.ZERO) <= 0) {
-            validationErrors.put("rate", "Rate must be a positive number.");
+            validationErrors.put("rate", "Курс должен быть положительным числом.");
         } else {
-            // Проверка на максимальное количество знаков
-            int precision = rate.precision(); // всего знаков
-            int scale = rate.scale();         // знаков после запятой
-            if (precision > 12) {
-                validationErrors.put("rate", "Rate cannot have more than 12 digits in total.");
+            // Улучшенная проверка на количество знаков.
+            // precision() - scale() считает количество цифр ДО запятой.
+            if (rate.precision() - rate.scale() > 6) {
+                // Пример: 1234567.89 -> precision=9, scale=2. 9-2=7 > 6. Ошибка.
+                // Пример: 123456.789 -> precision=9, scale=3. 9-3=6. OK.
+                validationErrors.put("rate", "В курсе не может быть более 6 цифр до запятой.");
             }
-            if (scale > 6) {
-                validationErrors.put("rate", "Rate cannot have more than 6 digits after the decimal point.");
+            if (rate.scale() > 6) {
+                validationErrors.put("rate", "В курсе не может быть более 6 цифр после запятой.");
             }
         }
 

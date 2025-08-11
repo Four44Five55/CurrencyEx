@@ -11,6 +11,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import static org.example.SQLiteExceptionTranslator.*;
+
 public class CurrencyDAO {
 
     public Currency save(Currency currency) {
@@ -36,7 +38,7 @@ public class CurrencyDAO {
             }
             return currency;
         } catch (SQLException e) {
-            // Проверяем на дубликат. `e.getMessage()` здесь надежнее для SQLite.
+            // Проверяем на дубликат
             if (isUniqueConstraintError(e)) {
                 throw new DuplicateEntityException("Валюта", currency.getCode());
             }
@@ -72,9 +74,9 @@ public class CurrencyDAO {
              PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, Code.toUpperCase());
 
-            try (ResultSet rs = statement.executeQuery()) {
-                if (rs.next()) {
-                    return Optional.of(mapResultSetToCurrency(rs));
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    return Optional.of(mapResultSetToCurrency(resultSet));
                 } else {
                     return Optional.empty();
                 }
@@ -150,28 +152,6 @@ public class CurrencyDAO {
         return currency;
     }
 
-    private boolean isUniqueConstraintError(SQLException e) {
-        return e instanceof SQLiteException &&
-                e.getErrorCode() == SQLiteErrorCode.SQLITE_CONSTRAINT.code &&
-                e.getMessage().contains("UNIQUE");
-    }
 
-    private boolean isForeignKeyConstraintError(SQLException e) {
-        return e instanceof SQLiteException &&
-                e.getErrorCode() == SQLiteErrorCode.SQLITE_CONSTRAINT.code &&
-                e.getMessage().contains("FOREIGN KEY");
-    }
-
-    private DataAccessException translateToGeneralError(String task, SQLException e) {
-        if (e instanceof SQLiteException) {
-            int errorCode = ((SQLiteException) e).getErrorCode();
-            if (errorCode == SQLiteErrorCode.SQLITE_CANTOPEN.code ||
-                    errorCode == SQLiteErrorCode.SQLITE_IOERR.code) {
-                return new DataAccessResourceFailureException("Не удалось выполнить " + task + ". Ошибка ресурса базы данных.", e);
-            }
-        }
-        // Во всех остальных непонятных случаях - общее исключение
-        return new DataAccessException("Не удалось выполнить " + task + ". Ошибка ресурса базы данных.", e);
-    }
 
 }
