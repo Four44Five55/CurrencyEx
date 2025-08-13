@@ -1,44 +1,145 @@
-<!DOCTYPE html >
-<html lang="ru">
+<!DOCTYPE html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Простой сервлет-тест</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/bootstrap.css"/>
+    <title>Currency Exchange Service</title>
+
 </head>
 <body>
+<div class="container">
+    <h1 class="mb-4">Currency Exchange Service</h1>
+    <div class="alert alert-secondary" role="alert">
+        Обменный курс рассчитывается на основе данных Центрального банка РФ.
+        <br> <!-- Добавляем перенос строки для лучшей читаемости -->
+    </div>
 
-<h1>Тестирование сервлета</h1>
+    <section class="mt-xxl-5">
+        <div class="row">
+            <!-- Левая колонка: Available Currencies -->
+            <div class="col col-6">
+                <h4>Available Currencies</h4>
+                <table class="table currencies-table">
+                    <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Name</th>
+                        <th>Sign</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>USD</td>
+                        <td>US Dollar</td>
+                        <td>$</td>
+                    </tr>
+                    <!-- Здесь будут другие валюты -->
+                    </tbody>
+                </table>
+            </div>
 
-<hr>
+            <!-- Правая колонка: Add New Currency + Currency Conversion -->
+            <div class="col col-6">
+                <h4>Add New Currency</h4>
+                <form id="add-currency">
+                    <div class="form-group mt-3">
+                        <label for="add-currency-code">Code</label>
+                        <input type="text" name="code" placeholder="USD"
+                               class="form-control form-control-sm currency-code" id="add-currency-code">
+                    </div>
+                    <div class="form-group mt-3">
+                        <label for="add-currency-name">Name</label>
+                        <input type="text" name="fullName" placeholder="US Dollar" class="form-control form-control-sm"
+                               id="add-currency-name">
+                    </div>
+                    <div class="form-group mt-3">
+                        <label for="add-currency-sign">Sign</label>
+                        <input type="text" name="sign" placeholder="$" class="form-control form-control-sm"
+                               id="add-currency-sign">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm mt-4">Add Currency</button>
+                </form>
 
-<h2>1. Прямая ссылка на сервлет</h2>
-<p>Нажмите, чтобы получить стандартное приветствие от сервлета.</p>
-<a href="hello">Перейти к /hello</a>
+                <!-- Currency Conversion сразу после Add New Currency -->
+                <h2 class="mt-5">Currency Conversion</h2>
+                <form id="convert">
+                    <div class="form-group">
+                        <label for="convert-base-currency">Base Currency</label>
+                        <select class="form-control" id="convert-base-currency">
+                            <option value="USD">USD</option>
+                            <!-- Здесь можно добавить другие валюты -->
+                        </select>
+                    </div>
+                    <div class="form-group mt-3">
+                        <label for="convert-target-currency">Target Currency</label>
+                        <select class="form-control" id="convert-target-currency">
+                            <option value="USD">USD</option>
+                            <!-- Здесь можно добавить другие валюты -->
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="form-group mt-3">
+                                <label for="convert-amount">Amount</label>
+                                <input placeholder="1.23" type="text" class="form-control" id="convert-amount">
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="form-group mt-3">
+                                <label for="convert-converted-amount">Converted amount</label>
+                                <input type="text" class="form-control" id="convert-converted-amount" readonly>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary mt-3">Convert</button>
 
-<hr>
+                </form>
+            </div>
+        </div>
+    </section>
 
-<h2>2. Форма для отправки GET-запроса</h2>
-<p>Введите имя, чтобы сервлет поприветствовал вас персонально.</p>
-<form action="hello" method="get">
-    <label for="name-input">Ваше имя:</label>
-    <input type="text" id="name-input" name="name">
-    <button type="submit">Отправить</button>
-</form>
+    <!-- Edit exchange rate modal -->
+    <div class="modal fade" id="edit-exchange-rate-modal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Exchange Rate</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form>
+                        <div class="form-group">
+                            <label for="exchange-rate-input">Exchange Rate:</label>
+                            <input type="text" class="form-control" id="exchange-rate-input" value="1.00">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary">Save changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
+
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+        <div id="api-error-toast" class="toast hide" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <strong class="me-auto">Error</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+
+            </div>
+            <div class="toast-body">
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="js/jquery-3.6.3.min.js"></script>
+<script src="js/bootstrap.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>
-```
-
-Этот HTML-код:
-*   Не содержит никаких ссылок на внешние стили или скрипты.
-*   Выполняет те же две функции: предоставляет прямую ссылку и форму для взаимодействия с вашим `HelloServlet`.
-*   Будет выглядеть очень просто, без стилей, но для проверки работоспособности бэкенда этого более чем достаточно.
-
-### Итог
-
-Для отладки и проверки базовой функциональности сервлета вы поступили абсолютно верно. Сначала заставляем работать ядро (сервлет), а уже потом, при необходимости, добавляем "обвес" в виде стилей и скриптов.
-
-**Ваши следующие шаги остаются прежними:**
-1.  Убедиться, что `index.html` (если он есть) не ссылается на удаленные файлы.
-2.  Собрать проект в `.war` архив (`mvn package` или `./gradlew build`).
-3.  Развернуть `.war` в Tomcat.
-4.  Проверить в браузере.

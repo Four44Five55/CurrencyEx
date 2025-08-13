@@ -1,0 +1,27 @@
+# Gradle
+.gradle/
+build/
+*.lock
+*.bin
+*.probe
+
+# IntelliJ IDEA
+.idea/
+*.iml
+workspace.xml
+misc.xml
+
+# Java классы
+*.class
+
+# Сборочные артефакты
+*.war
+*.jar
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Логи
+*.log
+logs/

@@ -38,7 +38,7 @@ public class ExchangeRateService {
 
     public ExchangeRate getExchangeRateByCode(String currencyCode) {
         return exchangeRateDAO.findByCurrencyCode(currencyCode.toUpperCase())
-                .orElseThrow(() -> new EntityNotFoundException("Обменный курс для валюты", currencyCode));
+                .orElseThrow(() -> new EntityNotFoundException("Обменный курс ", currencyCode));
     }
 
     public ExchangeRate updateExchangeRate(String currencyCode, int nominal, BigDecimal rate) {
@@ -70,7 +70,7 @@ public class ExchangeRateService {
         // Конвертация ИЗ РУБЛЯ в другую валюту (RUB -> USD)
         if (fromCode.equals(BASE_CURRENCY_CODE)) {
             ExchangeRate toRate = exchangeRateDAO.findByCurrencyCode(toCode)
-                    .orElseThrow(() -> new EntityNotFoundException("Обменный курс валюты " + toCode, "не найден."));
+                    .orElseThrow(() -> new EntityNotFoundException("Обменный курс валюты ", toCode));
 
             // Нам нужен курс 1 / (USD -> RUB)
             BigDecimal ratePerOneUnit = toRate.getRate().divide(
@@ -82,7 +82,7 @@ public class ExchangeRateService {
         //  Конвертация В РУБЛЬ из другой валюты (USD -> RUB)
         if (toCode.equals(BASE_CURRENCY_CODE)) {
             ExchangeRate fromRate = exchangeRateDAO.findByCurrencyCode(fromCode)
-                    .orElseThrow(() -> new EntityNotFoundException("Обменный курс валюты " + fromCode, "не найден."));
+                    .orElseThrow(() -> new EntityNotFoundException("Обменный курс валюты ", fromCode));
 
             // Просто возвращаем курс этой валюты к рублю
             return fromRate.getRate().divide(
@@ -92,9 +92,9 @@ public class ExchangeRateService {
         // Кросс-курс между двумя НЕ-РУБЛЕВЫМИ валютами (USD -> EUR)
         // (Этот блок остается таким же, как мы писали ранее)
         ExchangeRate fromRate = exchangeRateDAO.findByCurrencyCode(fromCode)
-                .orElseThrow(() -> new EntityNotFoundException("Обменный курс валюты " + fromCode, "не найден."));
+                .orElseThrow(() -> new EntityNotFoundException("Обменный курс валюты ", fromCode));
         ExchangeRate toRate = exchangeRateDAO.findByCurrencyCode(toCode)
-                .orElseThrow(() -> new EntityNotFoundException("Обменный курс валюты " + toCode, "не найден."));
+                .orElseThrow(() -> new EntityNotFoundException("Обменный курс валюты ", toCode));
 
         BigDecimal fromRatePerOneUnit = fromRate.getRate().divide(
                 BigDecimal.valueOf(fromRate.getNominal()), 12, RoundingMode.HALF_UP);
